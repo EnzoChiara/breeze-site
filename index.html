@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Breeze Studio</title>
+<meta name="description" content="A Maya é a secretária virtual do seu estúdio de tatuagem: atende WhatsApp e Instagram, passa a estimativa, marca o horário, cobra o sinal no Pix e te manda o cliente pronto.">
+<meta name="theme-color" content="#0D0818">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Caveat+Brush&family=IBM+Plex+Mono:wght@400;500&family=Patrick+Hand&display=swap" rel="stylesheet">
+<style>
+/* Conceito: mesa de estúdio. Papel escuro, recortes rosa e roxo, letras recortadas, anotações
+   em giz e a Maya (a cachorra de verdade) como adesivo. O que prova o produto continua limpo:
+   a conversa e os trabalhos da Mariana. */
+:root{
+  --ink:#0D0818;
+  --ink-2:#130A20;
+  --ink-3:#1C1030;
+  --paper:#FBEFF4;
+  --cream:#FDF6EC;
+  --paper-ink:#2A1238;
+  --paper-muted:#6E5480;
+  --pink:#E8468C;
+  --pink-light:#F9BAD8;
+  --purple:#7B2FBE;
+  --purple-2:#9D50D4;
+  --gold:#F5C842;
+  --text:#FDF4FF;
+  --muted:#B9A6CC;
+  --line:rgba(253,244,255,.14);
+  --tape:rgba(236,224,196,.78);
+
+  --display:'Archivo', 'Arial Black', sans-serif;
+  --script:'Caveat Brush', 'Segoe Print', cursive;
+  --hand:'Patrick Hand', 'Segoe Print', cursive;
+  --mono:'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  --gutter:clamp(16px,4vw,56px);
+  --ease:cubic-bezier(.7,0,.2,1);
+  /* grão de giz: furinhos na letra, como cera no papel */
+  --giz:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.15 .4' numOctaves='2' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -14 10.3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  color-scheme:dark;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+html.lenis,html.lenis body{height:auto}
+.lenis.lenis-smooth{scroll-behavior:auto!important}
+html,body{overflow-x:clip}
+body{background:var(--ink);color:var(--text);font-family:var(--display);font-variation-settings:"wdth" 100;font-size:17px;line-height:1.55;overflow-x:hidden;-webkit-font-smoothing:antialiased;
+  /* lasquinhas de giz espalhadas pelo papel escuro */
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='460' height='460'%3E%3Cg fill='none' stroke-linecap='round' stroke-width='2' opacity='.32'%3E%3Cpath d='M40 60l16-7' stroke='%23E8468C'/%3E%3Cpath d='M300 40l-9 14' stroke='%239D50D4'/%3E%3Cpath d='M410 150l13 4' stroke='%23F5C842'/%3E%3Cpath d='M120 220l-6 15' stroke='%23F9BAD8'/%3E%3Cpath d='M250 300l18-3' stroke='%237B2FBE'/%3E%3Cpath d='M60 380l10 10' stroke='%23E8468C'/%3E%3Cpath d='M380 400l-12 6' stroke='%239D50D4'/%3E%3Cpath d='M200 120l4 12' stroke='%235FA8E8'/%3E%3Cpath d='M440 300l-4 14' stroke='%23F9BAD8'/%3E%3Cpath d='M20 230l12-4' stroke='%23F5C842'/%3E%3C/g%3E%3C/svg%3E")}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;cursor:pointer}
+img,svg,canvas{display:block;max-width:100%}
+::selection{background:var(--pink);color:#fff}
+:focus-visible{outline:2px solid var(--gold);outline-offset:4px}
+.wrap{padding-inline:var(--gutter);max-width:1440px;margin:0 auto}
+.mono{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.giz{-webkit-mask-image:var(--giz);mask-image:var(--giz);-webkit-mask-size:160px;mask-size:160px}
+.script{font-family:var(--script);font-weight:400;text-transform:none;letter-spacing:0;color:var(--pink)}
+.lead{color:var(--muted);max-width:460px;margin-top:22px}
+
+/* grão de papel por cima de tudo */
+.grain{position:fixed;inset:0;z-index:90;pointer-events:none;opacity:.07;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* ── Papel rasgado ─────────────────────────────────────────────
+   O JS gera dois contornos irregulares: o de fora (fibra branca) e o de dentro (cor). */
+.papel{position:relative;z-index:0;isolation:isolate}
+.papel::before,.papel::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none}
+.papel::before{background:var(--cream);clip-path:var(--ra,none)}
+.papel::after{background:var(--cor,var(--paper));clip-path:var(--rb,none)}
+.fita{position:absolute;width:86px;height:26px;background:var(--tape);z-index:3;pointer-events:none;
+  box-shadow:0 1px 2px rgba(0,0,0,.15);clip-path:polygon(0 8%,6% 0,12% 10%,18% 0,24% 6%,100% 0,94% 12%,100% 30%,95% 50%,100% 72%,94% 90%,100% 100%,0 100%,5% 84%,0 64%,6% 44%,0 24%)}
+
+/* Borda rasgada entre seções */
+.rasgo{position:absolute;left:0;right:0;top:-27px;height:30px;pointer-events:none;z-index:2}
+.rasgo::before,.rasgo::after{content:"";position:absolute;inset:0}
+.rasgo::before{background:var(--cream);clip-path:var(--ra,none)}
+.rasgo::after{background:var(--cor);clip-path:var(--rb,none)}
+
+/* ── Letras recortadas ─────────────────────────────────────── */
+.recorte{font-weight:900;font-variation-settings:"wdth" 100;text-transform:uppercase;line-height:.95;letter-spacing:-.01em;color:var(--cream);padding-top:.16em;margin-top:-.16em}
+/* o grão de giz é uma máscara: o respiro em cima evita cortar os acentos (Ê, Ó) */
+.recorte .pal{display:inline-block;white-space:nowrap}
+.recorte .ch{display:inline-block;transform:rotate(var(--r,0deg)) translateY(var(--y,0px));will-change:transform}
+h2.recorte{font-size:clamp(40px,6vw,96px)}
+
+/* ── Anotação à mão (texto + seta que se desenha) ──────────── */
+.note{font-family:var(--hand);font-size:clamp(21px,1.8vw,26px);line-height:1.05;display:inline-flex;align-items:flex-end;gap:6px}
+.note svg{overflow:visible;flex-shrink:0}
+.note path{fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.note path.risco{stroke-dasharray:1 0}
+
+/* ── Botão adesivo ─────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:12px;border:0;border-radius:10px;background:var(--pink);color:#fff;font-weight:800;font-size:16px;padding:17px 26px;
+  box-shadow:0 0 0 3px var(--cream),6px 7px 0 3px rgba(0,0,0,.35);transform:rotate(-1.2deg);transition:transform .45s var(--ease),box-shadow .45s var(--ease)}
+.btn:hover{transform:rotate(0) translateY(-3px);box-shadow:0 0 0 3px var(--cream),8px 11px 0 3px rgba(0,0,0,.3)}
+.btn svg{width:18px;height:18px;transition:transform .45s var(--ease)}
+.btn:hover svg{transform:translateX(3px)}
+.btn.ghost{background:var(--cream);color:var(--paper-ink);transform:rotate(1deg)}
+
+/* ── Navegação ─────────────────────────────────────────────── */
+.nav{position:fixed;top:0;left:0;right:0;z-index:80;padding:calc(env(safe-area-inset-top,0px) + 14px) var(--gutter) 14px;display:flex;justify-content:space-between;align-items:center;transition:transform .5s var(--ease)}
+.nav.some{transform:translateY(-120%)}
+.nav .brand{font-weight:900;font-size:17px;letter-spacing:-.01em;display:flex;gap:10px;align-items:center;background:var(--cream);color:var(--paper-ink);padding:6px 14px 6px 6px;border-radius:999px;transform:rotate(-1.5deg);box-shadow:3px 4px 0 rgba(0,0,0,.35)}
+.nav .brand i{width:32px;height:32px;border-radius:50%;background:var(--pink-light) url(img/maya.webp) 50% 18%/190% no-repeat;display:inline-block}
+.nav ul{display:flex;gap:6px;list-style:none;background:rgba(13,8,24,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:6px;border-radius:999px;border:1px solid var(--line)}
+.nav ul a{display:block;padding:8px 14px;border-radius:999px;font-size:15px;font-weight:600;transition:background .3s}
+.nav ul a:hover{background:rgba(253,244,255,.1)}
+.pill{display:inline-flex;align-items:center;padding:11px 18px;border-radius:10px;background:var(--pink);color:#fff;font-size:14px;font-weight:800;box-shadow:0 0 0 2px var(--cream),4px 5px 0 2px rgba(0,0,0,.35);transform:rotate(1.5deg)}
+
+/* ── Hero ──────────────────────────────────────────────────── */
+.hero{position:relative;min-height:100svh;padding:clamp(110px,12vh,150px) 0 clamp(50px,7vw,90px);overflow:hidden;display:flex;align-items:center}
+.pedaco{position:absolute;z-index:0;--cor:var(--pink)}
+.pedaco.roxo{--cor:var(--purple)}
+.pedaco.p1{width:min(22vw,260px);height:min(13vw,150px);left:-9%;top:-3%;transform:rotate(-8deg)}
+.pedaco.p2{width:min(12vw,140px);height:min(20vw,220px);left:-9%;top:74%;transform:rotate(6deg)}
+.pedaco.p3{width:min(22vw,260px);height:min(13vw,140px);right:-4%;top:9%;transform:rotate(7deg)}
+.pedaco.p4{width:min(14vw,170px);height:min(18vw,200px);right:-7%;bottom:-12%;transform:rotate(-5deg)}
+.pedaco.p5{width:min(18vw,220px);height:min(10vw,110px);left:38%;bottom:-3%;transform:rotate(3deg)}
+.pedaco.p6{display:none}
+.hero .wrap{position:relative;z-index:2;width:100%}
+.hero-grid{display:grid;grid-template-columns:1.08fr .92fr;gap:clamp(20px,4vw,60px);align-items:center}
+.hero .mono{color:var(--muted);display:block;margin-bottom:clamp(14px,2vw,26px)}
+.hero h1{display:flex;flex-direction:column}
+.hero h1 .recorte{font-size:clamp(54px,8.6vw,150px)}
+.hero h1 .script{font-size:clamp(46px,6.8vw,118px);line-height:1;margin-top:.04em;transform:rotate(-2deg);transform-origin:left;display:inline-block}
+.estrela{position:absolute;color:var(--gold);width:clamp(34px,4vw,58px);right:6%;top:-8%}
+.hero-copy{max-width:520px;color:var(--muted);font-size:clamp(16px,1.35vw,19px);margin-top:clamp(18px,2.4vw,30px)}
+.hero-copy b{color:var(--text);font-weight:700}
+.hero-cta{display:flex;align-items:center;flex-wrap:wrap;gap:18px 26px;margin-top:clamp(24px,3vw,36px)}
+.hero-cta .note{color:var(--gold)}
+
+.maya-hero{position:relative;width:100%;max-width:600px;margin-left:auto;perspective:900px}
+.adesivo{width:100%;height:auto;filter:drop-shadow(8px 12px 0 rgba(0,0,0,.35));transform-style:preserve-3d;will-change:transform}
+.balao{position:absolute;right:-3%;top:6%;z-index:3;max-width:210px;padding:16px 18px 18px;font-family:var(--hand);font-size:clamp(19px,1.6vw,23px);line-height:1.15;color:var(--paper-ink);--cor:var(--pink-light);transform:rotate(4deg)}
+.balao .fita{top:-12px;right:18px;transform:rotate(12deg);width:64px}
+.balao b{color:var(--pink)}
+.maya-notes .note{position:absolute;color:var(--pink-light);z-index:3}
+.maya-notes .n1{left:-6%;top:-4%}
+.maya-notes .n2{left:-14%;top:44%}
+.maya-notes .n3{right:-4%;bottom:6%;flex-direction:row-reverse}
+.maya-notes .n4{left:-2%;bottom:-6%}
+
+/* ── Manifesto (palavras acendem com a rolagem) ────────────── */
+.manifesto{padding:clamp(110px,16vw,220px) 0}
+.manifesto p{font-size:clamp(28px,4.4vw,70px);line-height:1.1;font-weight:600;letter-spacing:-.02em;max-width:1250px}
+.manifesto .w,.proof .w{opacity:.16;transition:opacity .3s}
+.manifesto .w.on,.proof .w.on{opacity:1}
+.manifesto em{font-style:normal;color:var(--pink);position:relative;white-space:nowrap}
+.rabisco{position:absolute;left:-2%;right:-2%;bottom:-.18em;width:104%;height:.35em;overflow:visible;color:var(--gold)}
+.rabisco path{fill:none;stroke:currentColor;stroke-width:5;stroke-linecap:round}
+
+/* ── Conversa jogável ──────────────────────────────────────── */
+.demo{padding:clamp(40px,6vw,90px) 0 clamp(100px,12vw,170px)}
+.demo-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(30px,6vw,100px);align-items:center}
+.demo .note{color:var(--gold);margin-top:34px}
+.phone-wrap{position:relative;width:100%;max-width:400px;margin-left:auto;transform:rotate(1.6deg)}
+.phone-wrap .fita.a{top:-12px;left:-18px;transform:rotate(-32deg)}
+.phone-wrap .fita.b{bottom:-10px;right:-20px;transform:rotate(-28deg)}
+.phone{border-radius:38px;background:#07040D;padding:12px;box-shadow:0 0 0 4px var(--cream),12px 16px 0 4px rgba(0,0,0,.35)}
+.phone-head{display:flex;align-items:center;gap:12px;padding:10px 12px 12px;border-bottom:1px solid var(--line)}
+.phone-head .av{width:38px;height:38px;border-radius:50%;background:var(--paper) center/cover;flex-shrink:0}
+.phone-head b{display:block;font-size:15px;line-height:1.2}
+.phone-head small{color:#86EFAC;font-size:12px}
+.thread{height:min(460px,56svh);overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:16px 6px 12px;overscroll-behavior:contain;scrollbar-width:none}
+.thread::-webkit-scrollbar{display:none}
+.msg{max-width:84%;padding:9px 12px;border-radius:16px;font-size:15px;line-height:1.4;animation:pop .4s var(--ease) both}
+.msg.maya{align-self:flex-start;background:var(--ink-3);border-top-left-radius:4px}
+.msg.eu{align-self:flex-end;background:var(--purple);border-top-right-radius:4px}
+.msg .pix{display:block;margin-top:6px;font-family:var(--mono);font-size:10.5px;word-break:break-all;background:rgba(0,0,0,.3);padding:6px 8px;border-radius:8px;color:var(--pink-light)}
+.tag{align-self:flex-start;font-family:var(--hand);font-size:19px;line-height:1.1;color:var(--gold);padding:0 4px 4px;animation:pop .4s var(--ease) both}
+.typing{align-self:flex-start;display:flex;gap:4px;padding:13px 14px;border-radius:16px;border-top-left-radius:4px;background:var(--ink-3)}
+.typing i{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:dot 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+.ficha{align-self:stretch;margin-top:6px;border:2px dashed var(--gold);border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.45;animation:pop .4s var(--ease) both}
+.ficha b{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--gold);margin-bottom:4px}
+.opts{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;padding:12px 6px 6px;border-top:1px solid var(--line);min-height:62px}
+.opt{border:2px solid var(--pink);background:transparent;border-radius:12px;padding:8px 14px;font-size:14px;font-weight:700;animation:pop .4s var(--ease) both;transition:background .25s,transform .25s}
+.opt:hover{background:var(--pink);transform:rotate(-1.5deg)}
+.opt.cta{background:var(--pink)}
+@keyframes pop{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes dot{0%,60%,100%{opacity:.3;transform:none}30%{opacity:1;transform:translateY(-3px)}}
+
+/* ── Do decalque à pele ────────────────────────────────────── */
+.work{position:relative;background:var(--paper);color:var(--paper-ink);padding:clamp(100px,12vw,170px) 0}
+.work .recorte{color:var(--paper-ink)}
+.work-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(30px,6vw,100px);align-items:center}
+.work .lead{color:var(--paper-muted)}
+.polaroid{position:relative;width:100%;max-width:520px;margin:0 auto;padding:14px 14px 58px;background:#fff;transform:rotate(-2deg);box-shadow:10px 14px 0 rgba(42,18,56,.16)}
+.polaroid .fita{top:-13px;left:50%;margin-left:-43px;transform:rotate(-3deg)}
+.polaroid figcaption{position:absolute;left:18px;right:18px;bottom:14px;font-family:var(--hand);font-size:22px;color:var(--paper-ink)}
+.frame{position:relative;width:100%;aspect-ratio:4/5;overflow:hidden;background:#EADCE4;touch-action:pan-y;cursor:crosshair}
+.frame img,.frame canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.frame .note{position:absolute;left:16px;bottom:14px;color:var(--purple);font-size:24px;pointer-events:none;transition:opacity .6s}
+.frame.pintou .note{opacity:0}
+.js .frame:not(.pronto) img{visibility:hidden}
+.agulha{position:absolute;left:-7px;top:-7px;width:14px;height:14px;border-radius:50%;background:var(--pink);box-shadow:0 0 0 4px rgba(232,70,140,.25),0 0 18px rgba(232,70,140,.8);opacity:0;transition:opacity .3s;pointer-events:none}
+.agulha.on{opacity:1}
+.tabs{display:flex;flex-wrap:wrap;gap:10px;margin-top:34px}
+.tab{border:2px solid var(--paper-ink);background:transparent;border-radius:10px;padding:9px 18px;font-weight:700;transition:background .3s,color .3s,transform .3s}
+.tab:nth-child(2){transform:rotate(1.5deg)}.tab:nth-child(3){transform:rotate(-1deg)}
+.tab[aria-selected="true"]{background:var(--paper-ink);color:var(--paper)}
+.caption{margin-top:24px;min-height:96px}
+.caption .note{color:var(--purple);font-size:clamp(25px,2.3vw,32px)}
+.caption small{display:block;margin-top:8px;color:var(--paper-muted);font-size:14px}
+.work .actions{display:flex;gap:18px;align-items:center;margin-top:16px}
+.link{border:0;background:none;font-weight:700;border-bottom:2px solid currentColor;padding:2px 0}
+
+/* ── Controle: bilhetes presos com fita ────────────────────── */
+.control{position:relative;padding:clamp(110px,13vw,190px) 0}
+.control h2{max-width:1100px}
+.bilhetes{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(18px,3vw,40px);margin-top:clamp(44px,6vw,84px)}
+.bilhete{padding:34px 28px 32px;color:var(--paper-ink);--cor:var(--paper)}
+.bilhete:nth-child(1){transform:rotate(-1.6deg)}
+.bilhete:nth-child(2){transform:rotate(1.2deg);--cor:var(--pink-light)}
+.bilhete:nth-child(3){transform:rotate(-.6deg)}
+.bilhete .fita{top:-12px;left:28px;transform:rotate(-5deg)}
+.bilhete .num{font-family:var(--script);font-size:46px;line-height:1;color:var(--purple)}
+.bilhete h3{font-size:clamp(21px,1.9vw,27px);font-weight:900;letter-spacing:-.01em;line-height:1.1;margin:10px 0 10px}
+.bilhete p{color:var(--paper-muted)}
+.honest{margin-top:clamp(44px,5vw,70px);max-width:760px;color:var(--muted);font-size:clamp(17px,1.5vw,20px)}
+.honest b{color:var(--text);font-weight:700}
+
+/* ── Prova ─────────────────────────────────────────────────── */
+.proof{padding:clamp(90px,11vw,160px) 0;text-align:center}
+.proof .seal{width:104px;height:104px;border-radius:50%;margin:0 auto 34px;background:var(--paper) center/cover;box-shadow:0 0 0 5px var(--cream),6px 8px 0 5px rgba(0,0,0,.35);transform:rotate(-6deg)}
+.proof blockquote{font-family:var(--script);font-size:clamp(34px,4.8vw,74px);line-height:1.08;max-width:1100px;margin:0 auto;color:var(--cream)}
+.proof cite{display:block;margin-top:26px;font-style:normal;color:var(--muted)}
+
+/* ── Quem é a Maya ─────────────────────────────────────────── */
+.historia{position:relative;padding:clamp(90px,11vw,160px) 0;--cor:var(--purple)}
+.historia .wrap{display:grid;grid-template-columns:.8fr 1.2fr;gap:clamp(30px,5vw,80px);align-items:center}
+.historia .adesivo{max-width:380px;margin:0 auto;transform:rotate(-5deg)}
+.historia h2{color:var(--cream)}
+.historia p{font-size:clamp(18px,1.6vw,22px);max-width:560px;margin-top:20px;color:#E9DDF6}
+.historia .script{font-size:clamp(30px,3vw,44px);color:var(--gold);display:block;margin-top:22px}
+
+/* ── Planos ────────────────────────────────────────────────── */
+.plans{position:relative;padding:clamp(110px,13vw,180px) 0;background:var(--ink-2)}
+.plans-head{display:flex;justify-content:space-between;align-items:end;gap:24px;flex-wrap:wrap}
+.tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(18px,2.4vw,32px);margin-top:clamp(44px,6vw,84px);align-items:stretch}
+.tier{padding:34px 28px;display:flex;flex-direction:column;--cor:var(--ink-3)}
+.tier:nth-child(1){transform:rotate(-1deg)}
+.tier:nth-child(3){transform:rotate(1deg)}
+.tier.pick{--cor:var(--cream);color:var(--paper-ink);transform:translateY(-10px) rotate(.4deg)}
+.tier.pick .fita{top:-12px;right:30px;transform:rotate(6deg)}
+.tier .top{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:19px}
+.tier .badge{font-family:var(--hand);font-size:23px;color:var(--pink);position:relative}
+.tier .badge svg{position:absolute;left:-12px;top:-9px;width:calc(100% + 24px);height:calc(100% + 18px);overflow:visible}
+.tier .badge path{fill:none;stroke:var(--pink);stroke-width:2.2;stroke-linecap:round}
+.tier .price{font-weight:900;font-variation-settings:"wdth" 80;font-size:clamp(64px,6vw,96px);line-height:.85;letter-spacing:-.03em;margin:28px 0 8px}
+.tier .price small{font-size:15px;letter-spacing:0;font-weight:500;opacity:.6;margin-left:4px}
+.tier .for{opacity:.75;min-height:52px}
+.tier .fund{font-family:var(--hand);font-size:22px;color:var(--pink);margin:0 0 14px;transform:rotate(-2deg);transform-origin:left}
+.plans-head .fundador{display:inline-block;margin-top:14px;padding:8px 14px;background:var(--gold);color:var(--ink);transform:rotate(-1deg);font-size:16px}
+.tier ul{list-style:none;margin:24px 0 30px;display:grid;gap:10px;flex:1;align-content:start}
+.tier li{padding-left:26px;position:relative}
+.tier li::before{content:"";position:absolute;left:2px;top:.55em;width:13px;height:8px;border-left:2.5px solid var(--pink);border-bottom:2.5px solid var(--pink);transform:rotate(-45deg) translateY(-3px)}
+.tier .btn{width:100%}
+.tier .breve{font-family:var(--hand);font-style:normal;font-size:.95em;color:var(--pink);white-space:nowrap;margin-left:4px}
+
+/* ── FAQ ───────────────────────────────────────────────────── */
+.faq{padding:clamp(100px,12vw,170px) 0}
+.faq-grid{display:grid;grid-template-columns:.8fr 1.2fr;gap:clamp(30px,6vw,100px)}
+details{border-bottom:2px dashed var(--line)}
+summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;gap:20px;padding:24px 0;font-size:clamp(19px,1.8vw,25px);font-weight:700;letter-spacing:-.01em}
+summary::-webkit-details-marker{display:none}
+summary span:last-child{font-family:var(--script);font-size:1.5em;line-height:.8;color:var(--pink);transition:transform .4s var(--ease)}
+details[open] summary span:last-child{transform:rotate(45deg)}
+details p{color:var(--muted);padding:0 0 26px;max-width:680px}
+
+/* ── CTA final + rodapé ────────────────────────────────────── */
+.final{position:relative;padding:clamp(110px,13vw,180px) 0 0;background:var(--pink);color:var(--ink)}
+.final-grid{display:grid;grid-template-columns:1.3fr .7fr;gap:30px;align-items:end}
+.final h2{font-size:clamp(52px,9vw,170px);color:var(--ink)}
+.final h2 .script{color:#fff;display:block;font-size:.86em;margin-top:.06em}
+.final-maya{position:relative;max-width:300px;justify-self:end}
+.final-maya .adesivo{transform:rotate(7deg)}
+.final-maya .balao{right:auto;left:-30%;top:-10%;--cor:var(--cream);transform:rotate(-5deg)}
+.final-row{display:flex;justify-content:space-between;align-items:center;gap:30px;margin-top:clamp(36px,5vw,64px);flex-wrap:wrap}
+.final-row p{max-width:440px;font-size:clamp(17px,1.4vw,20px);font-weight:500}
+.final .btn{background:var(--ink);color:var(--text)}
+.wordmark{font-size:16.8vw;text-align:center;line-height:.78;white-space:nowrap;margin-top:clamp(60px,8vw,120px);transform:translateY(10%);color:var(--ink)}
+footer{background:var(--ink);padding:28px var(--gutter) calc(env(safe-area-inset-bottom,0px) + 28px);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:14px}
+
+/* CTA fixo no celular */
+.sticky-cta{display:none}
+
+/* ── Responsivo ────────────────────────────────────────────── */
+@media (max-width:960px){
+  .nav ul{display:none}
+  .hero{padding-top:96px;align-items:flex-start}
+  .hero-grid,.demo-grid,.work-grid,.faq-grid,.historia .wrap,.final-grid{grid-template-columns:1fr}
+  .maya-hero{margin:24px auto 0;max-width:440px;width:84%}
+  .maya-notes{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin-top:22px}
+  .maya-notes .note{position:static;font-size:19px}
+  .maya-notes .note svg{display:none}
+  .maya-notes .note::before{content:"→";color:var(--gold);margin-right:4px}
+  .balao{max-width:170px;right:-8%;top:-2%}
+  .phone-wrap{margin:0 auto}
+  .bilhetes,.tiers{grid-template-columns:1fr}
+  .tier.pick{order:-1;transform:rotate(.4deg)}
+  .historia .adesivo{max-width:260px}
+  .final-maya{justify-self:center;max-width:220px;margin-top:10px}
+  .final-maya .balao{left:-45%}
+  .sticky-cta{display:flex;position:fixed;left:16px;right:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);z-index:85;transform:translateY(160%);transition:transform .5s var(--ease)}
+  .sticky-cta.on{transform:rotate(-1deg)}
+}
+@media (max-width:560px){
+  .hero h1 .recorte{font-size:16vw}
+  .hero h1 .script{font-size:13.2vw}
+  .pedaco.p5,.pedaco.p6{display:none}
+  .pedaco.p1{top:-40px;left:-70px}
+  .pedaco.p3{top:4%;right:-60px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  .manifesto .w,.proof .w{opacity:1}
+}
+</style>
+</head>
+<body>
+
+<div class="grain" aria-hidden="true"></div>
+
+<nav class="nav" aria-label="Principal">
+  <a class="brand" href="#topo"><i aria-hidden="true"></i>Breeze Studio</a>
+  <ul>
+    <li><a href="#conversa">Testar a Maya</a></li>
+    <li><a href="#trabalhos">Trabalhos</a></li>
+    <li><a href="#planos">Planos</a></li>
+    <li><a href="#duvidas">Dúvidas</a></li>
+  </ul>
+  <a class="pill js-wa" href="#">Falar com a Maya</a>
+</nav>
+
+<main id="topo">
+
+  <!-- 1. Promessa -->
+  <header class="hero">
+    <div aria-hidden="true">
+      <span class="pedaco papel p1"></span><span class="pedaco papel roxo p2"></span><span class="pedaco papel roxo p3"></span>
+      <span class="pedaco papel p4"></span><span class="pedaco papel roxo p5"></span><span class="pedaco papel p6"></span>
+    </div>
+    <div class="wrap hero-grid">
+      <div>
+        <span class="mono">Secretária virtual para estúdios de tatuagem</span>
+        <h1 aria-label="Você tatua. A Maya responde." style="position:relative">
+          <span class="recorte giz js-letras" aria-hidden="true">Você tatua.</span>
+          <span aria-hidden="true"><span class="script giz">a Maya responde.</span></span>
+          <svg class="estrela giz" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 2l5 12 13 1-10 8 4 13-12-7-12 7 4-13L2 15l13-1z" fill="currentColor"/></svg>
+        </h1>
+        <p class="hero-copy">Enquanto você está na maca, a <b>Maya</b> responde o WhatsApp e o Instagram do estúdio e te entrega o cliente com horário marcado e sinal pago.</p>
+        <div class="hero-cta">
+          <a class="btn js-wa" href="#">Conversar com a Maya <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          <a class="note giz" href="#conversa">ou testa ela aqui mesmo
+            <svg width="34" height="46" viewBox="0 0 34 46" aria-hidden="true"><path class="risco" d="M6 4c18 6 24 18 18 36"/><path d="M17 34l7 7 5-9"/></svg>
+          </a>
+        </div>
+      </div>
+      <figure class="maya-hero">
+        <img class="adesivo" id="maya" src="img/maya.webp" alt="Maya, a mascote da Breeze: uma cachorrinha branca de headset, deitada numa almofada e acenando" width="760" height="747">
+        <div class="balao papel"><span class="fita"></span>oi! já te mando o <b>orçamento</b> ♡</div>
+        <div class="maya-notes">
+          <span class="note giz n1">orça na hora <svg width="44" height="34" viewBox="0 0 44 34" aria-hidden="true"><path class="risco" d="M2 6c18-4 30 4 36 22"/><path d="M30 22l8 7 3-10"/></svg></span>
+          <span class="note giz n2">cobra o sinal<br>no Pix <svg width="40" height="26" viewBox="0 0 40 26" aria-hidden="true"><path class="risco" d="M2 18c12-12 24-14 34-8"/><path d="M27 4l9 6-9 6"/></svg></span>
+          <span class="note giz n3">marca na agenda <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><path class="risco" d="M38 34C26 34 12 26 6 8"/><path d="M2 16l4-9 8 5"/></svg></span>
+          <span class="note giz n4">lembra o cliente <svg width="40" height="30" viewBox="0 0 40 30" aria-hidden="true"><path class="risco" d="M2 26c16 0 28-8 32-22"/><path d="M26 10l8-7 4 10"/></svg></span>
+        </div>
+      </figure>
+    </div>
+  </header>
+
+  <!-- 2. O problema -->
+  <section class="manifesto">
+    <div class="wrap">
+      <p class="reveal-words">O celular vibra no meio do traço. Você não vai largar a máquina pra responder "quanto custa?". Só que o cliente não espera: manda a mesma mensagem pra outros três estúdios e fecha com <em>quem responde primeiro.</em></p>
+    </div>
+  </section>
+
+  <!-- 3. Conversa jogável -->
+  <section class="demo" id="conversa">
+    <div class="wrap demo-grid">
+      <div>
+        <h2 class="recorte giz js-letras">Faz de conta que você é o cliente.</h2>
+        <p class="lead">Toca nas respostas. A Maya atende como atenderia no WhatsApp do seu estúdio, com a sua tabela de preços e a sua agenda.</p>
+        <div class="note giz">em amarelo, o que ela faz por trás
+          <svg width="70" height="40" viewBox="0 0 70 40" aria-hidden="true"><path class="risco" d="M4 8c22-4 44 2 58 22"/><path d="M52 27l10 5 0-11"/></svg>
+        </div>
+      </div>
+      <div class="phone-wrap">
+        <span class="fita a"></span><span class="fita b"></span>
+        <div class="phone">
+          <div class="phone-head"><span class="av js-logo"></span><div><b>Breeze Ink</b><small>online</small></div></div>
+          <div class="thread" id="thread" data-lenis-prevent aria-live="polite">
+            <div class="msg maya">Oi! Sou a Maya, secretária da Mariana 🖤 Qual a ideia da tattoo?</div>
+          </div>
+          <div class="opts" id="opts"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Do decalque à pele -->
+  <section class="work" id="trabalhos">
+    <span class="rasgo" style="--cor:var(--paper)" aria-hidden="true"></span>
+    <div class="wrap work-grid">
+      <figure class="polaroid">
+        <span class="fita"></span>
+        <div class="frame" id="frame">
+          <img id="foto" src="img/tucano.jpg" alt="Tatuagem de tucano em pontilhismo colorido, feita pela Mariana" width="720" height="1230">
+          <canvas id="decalque" aria-hidden="true"></canvas>
+          <span class="note giz" aria-hidden="true">passa o dedo aqui</span>
+        </div>
+        <figcaption>@breeze_ink</figcaption>
+      </figure>
+      <div>
+        <h2 class="recorte giz js-letras">Do decalque à pele.</h2>
+        <p class="lead">A Maya cuida das mensagens. O tempo que sobra vai pra isso aqui.</p>
+        <div class="tabs" role="tablist" aria-label="Trabalhos da Mariana">
+          <button class="tab" role="tab" aria-selected="true" data-foto="tucano">Tucano</button>
+          <button class="tab" role="tab" aria-selected="false" data-foto="corvo">Corvo</button>
+          <button class="tab" role="tab" aria-selected="false" data-foto="guarana">Guaraná</button>
+        </div>
+        <div class="caption" id="legenda">
+          <span class="note giz">100% pontilhismo, premiado 6x</span>
+          <small>Tucano na coxa · @breeze_ink</small>
+        </div>
+        <div class="actions"><button class="link" id="ver-pronta">Ver pronta</button><button class="link" id="refazer">Voltar ao decalque</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. Controle -->
+  <section class="control">
+    <span class="rasgo" style="--cor:var(--ink)" aria-hidden="true"></span>
+    <div class="wrap">
+      <h2 class="recorte giz js-letras">Ela trabalha pra você, não no seu lugar.</h2>
+      <div class="bilhetes">
+        <article class="bilhete papel"><span class="fita"></span><span class="num giz">01</span><h3>O cliente chega organizado</h3><p>Projeto, tamanho, local, referência e estimativa num resumo no seu WhatsApp.</p></article>
+        <article class="bilhete papel"><span class="fita"></span><span class="num giz">02</span><h3>O que é seu, volta pra você</h3><p>Cover-up, alergia, desconto, reclamação: ela não inventa resposta. Avisa o cliente e te passa o recado.</p></article>
+        <article class="bilhete papel"><span class="fita"></span><span class="num giz">03</span><h3>Você assume quando quiser</h3><p>Uma mensagem e ela sai de cena com aquele cliente. Preço e agenda você muda falando com ela.</p></article>
+      </div>
+      <p class="honest"><b>Ela não finge ser você.</b> Se apresenta como secretária do estúdio e, se alguém perguntar, conta que é uma assistente virtual.</p>
+    </div>
+  </section>
+
+  <!-- 6. Prova -->
+  <section class="proof">
+    <div class="wrap">
+      <div class="seal js-logo" role="img" aria-label="Logo do estúdio Breeze Ink"></div>
+      <blockquote class="reveal-words">“Antes eu perdia vaga por não conseguir responder rápido. Agora a Maya resolve enquanto eu tatuo.”</blockquote>
+      <cite>Mariana · tatuadora da Breeze Ink, São Paulo</cite>
+    </div>
+  </section>
+
+  <!-- 7. Quem é a Maya -->
+  <section class="historia papel">
+    <div class="wrap">
+      <img class="adesivo" src="img/maya.webp" alt="" width="760" height="747" loading="lazy">
+      <div>
+        <h2 class="recorte giz js-letras">Quem é a Maya?</h2>
+        <p>A Breeze nasceu da Brisa, uma cachorra que deixou linhagem. A Maya é a última dela: branquinha, descabelada e sempre de olho em quem chega.</p>
+        <p>O nome caiu como uma luva. <b>Maya</b>, <b>my IA</b>: a secretária que não dorme, não esquece cliente e não deixa DM sem resposta.</p>
+        <span class="script giz">leve como brisa, rápida como a Maya.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. Oferta -->
+  <section class="plans" id="planos">
+    <div class="wrap">
+      <div class="plans-head">
+        <h2 class="recorte giz js-letras">Menos que uma tattoo por mês.</h2>
+        <p class="lead">Sem fidelidade. A gente configura com você e fica no ar em até 24h. Sem cartão pra testar: 14 dias grátis.</p>
+        <p class="fundador"><b>Fundador Tattoo Week</b> 30% off pra sempre nos 20 primeiros estúdios que fecharem na feira.</p>
+      </div>
+      <div class="tiers">
+        <article class="tier papel">
+          <div class="top"><b>Solo</b></div>
+          <div class="price">R$97<small>/mês</small></div>
+          <p class="fund">fundador: R$67/mês</p>
+          <p class="for">Pra quem tatua sozinho e vive respondendo DM.</p>
+          <ul>
+            <li>Atende, orça pela sua tabela e marca no WhatsApp</li>
+            <li>Cobra o sinal no Pix e confere o comprovante</li>
+            <li>Lembra o cliente 3 dias antes, na véspera e no dia</li>
+            <li>Lista de espera: se alguém cancela, a vaga já tem dono</li>
+            <li>Te avisa do cliente bom e você assume quando quiser</li>
+            <li>Agenda do dia e folgas pelo WhatsApp <em class="breve">em breve</em></li>
+            <li>Sua regra de remarcação, explicada pela Maya <em class="breve">em breve</em></li>
+          </ul>
+          <a class="btn ghost js-wa" data-plano="Solo" href="#">Quero o Solo</a>
+        </article>
+        <article class="tier papel pick">
+          <span class="fita"></span>
+          <div class="top"><b>Pro</b><span class="badge">o mais escolhido<svg viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><path d="M14 6C40 1 80 2 94 14s-8 24-44 24S2 32 3 20 22 4 46 3"/></svg></span></div>
+          <div class="price">R$197<small>/mês</small></div>
+          <p class="fund">fundador: R$137/mês</p>
+          <p class="for">Pra quem quer agenda cheia e cliente voltando.</p>
+          <ul>
+            <li>Tudo do Solo</li>
+            <li>Instagram junto, com a mesma Maya</li>
+            <li>Provador: o cliente testa a tattoo no próprio corpo</li>
+            <li>Ficha de saúde e termo antes da sessão <em class="breve">em breve</em></li>
+            <li>Cuidados pós-tattoo e pedido de avaliação <em class="breve">em breve</em></li>
+            <li>Resumo do dia e relatório da semana <em class="breve">em breve</em></li>
+          </ul>
+          <a class="btn js-wa" data-plano="Pro" href="#">Começar com o Pro</a>
+        </article>
+        <article class="tier papel">
+          <div class="top"><b>Estúdio</b></div>
+          <div class="price">R$347<small>/mês</small></div>
+          <p class="fund">fundador: R$247/mês</p>
+          <p class="for">Pra estúdio com mais de um tatuador.</p>
+          <ul>
+            <li>Tudo do Pro</li>
+            <li>Agenda separada por tatuador <em class="breve">em breve</em></li>
+            <li>Maya manda o cliente pro artista do estilo certo <em class="breve">em breve</em></li>
+            <li>Resumo por tatuador <em class="breve">em breve</em></li>
+            <li>Suporte prioritário</li>
+          </ul>
+          <a class="btn ghost js-wa" data-plano="Estúdio" href="#">Quero o Estúdio</a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. Dúvidas -->
+  <section class="faq" id="duvidas">
+    <div class="wrap faq-grid">
+      <h2 class="recorte giz js-letras">Antes de fechar.</h2>
+      <div>
+        <details><summary><span>O cliente vai perceber que é um robô?</span><span>+</span></summary><p>A Maya escreve como uma pessoa no WhatsApp: mensagens curtas, uma pergunta por vez, no tom que você escolher. Ela se apresenta como secretária do estúdio e, se alguém perguntar direto, conta que é uma assistente virtual.</p></details>
+        <details><summary><span>E se ela passar um preço errado?</span><span>+</span></summary><p>Ela só usa a tabela que você define e sempre fala em estimativa. Desconto e casos especiais ela repassa pra você.</p></details>
+        <details><summary><span>Preciso entender de tecnologia?</span><span>+</span></summary><p>Não. Você conta seus preços, estilos, dias de atendimento e jeito de falar, e a gente configura tudo com você.</p></details>
+        <details><summary><span>Tem fidelidade?</span><span>+</span></summary><p>Não. É mensal e você cancela quando quiser, sem multa.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10. Chamado final -->
+  <section class="final">
+    <span class="rasgo" style="--cor:var(--pink)" aria-hidden="true"></span>
+    <div class="wrap">
+      <div class="final-grid">
+        <h2 class="recorte giz"><span class="js-letras">A próxima DM é a sua</span> <span class="script">próxima sessão.</span></h2>
+        <div class="final-maya">
+          <img class="adesivo" src="img/maya.webp" alt="" width="760" height="747" loading="lazy">
+          <div class="balao papel"><span class="fita"></span>me chama!</div>
+        </div>
+      </div>
+      <div class="final-row">
+        <p>Manda um oi pra Maya. Ela te explica tudo do jeito que vai atender os seus clientes.</p>
+        <a class="btn js-wa" href="#">Falar com a Maya <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      </div>
+    </div>
+    <div class="wordmark recorte giz js-letras" aria-hidden="true">Breeze</div>
+  </section>
+</main>
+
+<footer>
+  <span>© Breeze Studio · 61.908.986 ENZO CHIARAMONTE OSORIO · CNPJ 61.908.986/0001-97 · Cotia/SP</span>
+  <span>Fotos: trabalhos da Mariana, @breeze_ink · Maya: a cachorra de verdade</span>
+  <a href="privacidade.html" style="color:inherit">Privacidade</a>
+</footer>
+
+<a class="btn sticky-cta js-wa" href="#">Conversar com a Maya</a>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lenis@1.1.13/dist/lenis.min.js"></script>
+<script>
+/* ── Configuração ───────────────────────────────────────────────
+   Número do WhatsApp comercial da Breeze Studio (55 + DDD + número). */
+const WHATSAPP_VENDAS = "5511955772601";
+const LOGO = "data:image/jpeg;base64,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";
+
+(function () {
+  const root = document.documentElement;
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const finePointer = matchMedia("(hover: hover) and (pointer: fine)").matches;
+  const hasGsap = typeof window.gsap !== "undefined" && typeof window.ScrollTrigger !== "undefined";
+  root.classList.add("js");
+  if (!reduce && hasGsap) root.classList.add("js-anim");
+  const espera = (ms) => new Promise((r) => setTimeout(r, reduce ? 0 : ms));
+
+  // Links de WhatsApp com mensagem pronta
+  function linkWhats(a) {
+    const plano = a.dataset.plano;
+    const msg = plano
+      ? `Oi Maya! Vi o site da Breeze Studio e quero o plano ${plano}.`
+      : "Oi Maya! Vi o site da Breeze Studio e quero saber como você pode atender meu estúdio.";
+    a.href = `https://wa.me/${WHATSAPP_VENDAS}?text=${encodeURIComponent(msg)}`;
+    a.target = "_blank"; a.rel = "noopener";
+  }
+  document.querySelectorAll(".js-wa").forEach(linkWhats);
+  document.querySelectorAll(".js-logo").forEach((el) => (el.style.backgroundImage = `url("${LOGO}")`));
+  if (finePointer) document.querySelector(".frame .note").textContent = "passa o mouse aqui";
+
+  // ── Papel rasgado ───────────────────────────────────────────
+  // Sorteio com semente: cada pedaço fica sempre com o mesmo rasgo.
+  let semente = 7;
+  const sorteia = () => { semente = (semente * 16807) % 2147483647; return semente / 2147483647; };
+  // Contorno em %, com recuo em px, então serve pra qualquer tamanho sem recalcular.
+  function contorno(rec, amp) {
+    // passeio aleatório: o rasgo sobe e desce aos poucos, como papel de verdade
+    let v = amp / 2;
+    const r = () => { v = Math.min(amp, Math.max(0, v + (sorteia() - 0.5) * amp * 0.9)); return (rec + v).toFixed(1); };
+    const p = [], n = 48, m = 30;
+    for (let i = 0; i <= n; i++) p.push(`${(i / n * 100).toFixed(2)}% ${r()}px`);
+    for (let i = 1; i <= m; i++) p.push(`calc(100% - ${r()}px) ${(i / m * 100).toFixed(2)}%`);
+    for (let i = n - 1; i >= 0; i--) p.push(`${(i / n * 100).toFixed(2)}% calc(100% - ${r()}px)`);
+    for (let i = m - 1; i >= 1; i--) p.push(`${r()}px ${(i / m * 100).toFixed(2)}%`);
+    return `polygon(${p.join(",")})`;
+  }
+  function borda(rec, amp) {   // só a borda de cima (divisória entre seções)
+    const p = [], n = 140;
+    let v = amp / 2;
+    for (let i = 0; i <= n; i++) {
+      v = Math.min(amp, Math.max(0, v + (sorteia() - 0.5) * amp * 0.7));
+      p.push(`${(i / n * 100).toFixed(2)}% ${(rec + v).toFixed(1)}px`);
+    }
+    return `polygon(${p.join(",")},100% 100%,0 100%)`;
+  }
+  document.querySelectorAll(".papel").forEach((el) => {
+    const grande = el.offsetWidth > 500;
+    el.style.setProperty("--ra", contorno(0, grande ? 7 : 4));
+    el.style.setProperty("--rb", contorno(3, grande ? 8 : 5));
+  });
+  document.querySelectorAll(".rasgo").forEach((el) => {
+    el.style.setProperty("--ra", borda(2, 14));
+    el.style.setProperty("--rb", borda(7, 14));
+  });
+
+  // ── Letras recortadas: cada letra levemente torta, palavras inteiras na mesma linha ──
+  document.querySelectorAll(".js-letras").forEach((el) => {
+    const palavras = el.textContent.trim().split(/\s+/);
+    el.textContent = "";
+    palavras.forEach((w, i) => {
+      const pal = document.createElement("span"); pal.className = "pal";
+      [...w].forEach((ch) => {
+        const s = document.createElement("span"); s.className = "ch"; s.textContent = ch;
+        s.style.setProperty("--r", `${((sorteia() - 0.5) * 6).toFixed(1)}deg`);
+        s.style.setProperty("--y", `${((sorteia() - 0.5) * 4).toFixed(1)}px`);
+        pal.appendChild(s);
+      });
+      el.appendChild(pal);
+      if (i < palavras.length - 1) el.appendChild(document.createTextNode(" "));
+    });
+  });
+
+  // Rabisco embaixo de "quem responde primeiro"
+  const destaque = document.querySelector(".manifesto em");
+  destaque.insertAdjacentHTML("beforeend", '<svg class="rabisco" viewBox="0 0 300 20" preserveAspectRatio="none" aria-hidden="true"><path d="M4 12C60 4 120 16 180 9s90 2 112 0"/></svg>');
+
+  // ── Conversa jogável com a Maya ─────────────────────────────
+  // Preços e horários iguais aos da config do estúdio piloto (config/breeze_ink.py).
+  const thread = document.getElementById("thread"), opts = document.getElementById("opts");
+  const brl = (n) => "R$" + Math.round(n).toLocaleString("pt-BR");
+  const desce = () => thread.scrollTo({ top: thread.scrollHeight, behavior: reduce ? "auto" : "smooth" });
+  function poe(cls, html) { const d = document.createElement("div"); d.className = cls; d.innerHTML = html; thread.appendChild(d); desce(); return d; }
+  async function maya(textos, nota) {
+    for (const t of textos) {
+      const dig = poe("typing", "<i></i><i></i><i></i>");
+      await espera(Math.min(1500, 500 + t.length * 14));
+      dig.remove(); poe("msg maya", t);
+      await espera(250);
+    }
+    if (nota) { await espera(300); poe("tag", "→ " + nota); }
+  }
+  function escolha(lista) {
+    return new Promise((ok) => {
+      opts.innerHTML = "";
+      lista.forEach(([rotulo, valor]) => {
+        const b = document.createElement("button"); b.className = "opt"; b.textContent = rotulo;
+        b.addEventListener("click", () => { opts.innerHTML = ""; poe("msg eu", rotulo); ok(valor); });
+        opts.appendChild(b);
+      });
+    });
+  }
+  async function conversa() {
+    thread.innerHTML = ""; opts.innerHTML = "";
+    await maya(["Oi! Sou a Maya, secretária da Mariana 🖤", "Qual a ideia da tattoo?"]);
+    const ideia = await escolha([["Um tucano igual o do perfil", "tucano"], ["Algo pequeno e delicado", "pequena"]]);
+    if (ideia === "tucano") await maya(["Esse tucano é premiado, você tem bom gosto 😄", "Em que parte do corpo?"], "anotou: tucano, pontilhismo colorido");
+    else await maya(["Que fofo! A Mariana tem flashes prontos a partir de R$80.", "Em que parte do corpo?"], "ofereceu o flash do catálogo");
+    const local = await escolha([["Braço", "braço"], ["Perna", "perna"], ["Costela", "costela"]]);
+    await maya(["E o tamanho, mais ou menos?"]);
+    const tam = await escolha(ideia === "tucano" ? [["Uns 10 cm", "media"], ["Uns 20 cm", "grande"]] : [["Até 5 cm", "pequena"], ["Uns 10 cm", "media"]]);
+    const faixa = { pequena: [200, 400], media: [400, 800], grande: [800, 1800] }[tam];
+    const extra = local === "costela" ? 1.2 : 1;
+    const [min, max] = faixa.map((v) => Math.round((v * extra) / 10) * 10);
+    await maya([`Nesse tamanho fica entre ${brl(min)} e ${brl(max)}. A Mariana fecha o valor certinho quando vir a referência.`, "Quer ver os horários?"],
+      local === "costela" ? "usou a sua tabela, +20% por ser costela" : "usou a sua tabela de preços");
+    await escolha([["Quero!", 1]]);
+    await maya(["Tenho sexta às 14h ou sábado às 10h."], "só ofereceu horário livre");
+    const dia = await escolha([["Sexta 14h", "sexta às 14h"], ["Sábado 10h", "sábado às 10h"]]);
+    const pix = poe("msg maya", `Reservei ${dia} pra você! O sinal é R$100 no Pix:<span class="pix">00020126580014br.gov.bcb.pix…5204000053039865406100.005802BR</span>`);
+    pix.style.display = "none"; const dig = poe("typing", "<i></i><i></i><i></i>"); await espera(1100); dig.remove(); pix.style.display = ""; desce();
+    await espera(300); poe("tag", "→ gerou o Pix do sinal");
+    await escolha([["Enviar comprovante 📎", 1]]);
+    await maya(["Recebi! Sinal confirmado, vaga garantida ✨", "Te mando um lembrete na véspera 🖤"], "conferiu o comprovante");
+    await espera(500);
+    poe("ficha", `<b>NO WHATSAPP DA MARIANA</b>Novo cliente · ${ideia === "tucano" ? "tucano" : "flash pequeno"} · ${local} · ${brl(min)}–${brl(max)} · ${dia} · sinal pago`);
+    opts.innerHTML = "";
+    const quero = document.createElement("a"); quero.className = "opt cta js-wa"; quero.textContent = "Quero isso no meu estúdio"; linkWhats(quero);
+    const de_novo = document.createElement("button"); de_novo.className = "opt"; de_novo.textContent = "Recomeçar";
+    de_novo.addEventListener("click", conversa);
+    opts.append(de_novo, quero);
+  }
+  let comecou = false;
+  new IntersectionObserver(([e]) => { if (e.isIntersecting && !comecou) { comecou = true; conversa(); } }, { threshold: 0.35 }).observe(document.querySelector(".phone"));
+
+  // ── Do decalque à pele ──────────────────────────────────────
+  const trabalhos = {
+    tucano: { alt: "Tatuagem de tucano em pontilhismo colorido, feita pela Mariana", nota: "100% pontilhismo, premiado 6x", info: "Tucano na coxa · @breeze_ink" },
+    corvo: { alt: "Tatuagem de corvo com flores, cobertura feita pela Mariana", nota: "cobertura: virou outra história", info: "Corvo na panturrilha · @breeze_ink" },
+    guarana: { alt: "Tatuagem de guaraná colorida, feita pela Mariana", nota: "a cara do Brasil ♡", info: "Guaraná na coxa · @breeze_ink" },
+  };
+  const frameEl = document.getElementById("frame"), foto = document.getElementById("foto"), tela = document.getElementById("decalque");
+  const ctx = tela.getContext("2d");
+  const traco = new Image();
+  const ponta = document.createElement("i"); ponta.className = "agulha"; frameEl.appendChild(ponta);
+  let pronto = false, autoFeito = 0, mexeu = false, anim = null, larguraDesenhada = 0;
+  function cobre(img) {   // mesmas contas do object-fit: cover
+    const s = Math.max(tela.width / img.naturalWidth, tela.height / img.naturalHeight);
+    const w = img.naturalWidth * s, h = img.naturalHeight * s;
+    return [(tela.width - w) / 2, (tela.height - h) / 2, w, h];
+  }
+  function desenhaDecalque() {
+    if (anim) { anim.kill(); anim = null; }
+    ponta.classList.remove("on");
+    const dpr = Math.min(2, devicePixelRatio || 1);
+    tela.width = tela.clientWidth * dpr; tela.height = tela.clientHeight * dpr;
+    larguraDesenhada = tela.clientWidth;
+    ctx.globalCompositeOperation = "source-over";
+    ctx.fillStyle = "#FBEFF4"; ctx.fillRect(0, 0, tela.width, tela.height);
+    if (traco.complete && traco.naturalWidth) ctx.drawImage(traco, ...cobre(traco));
+    frameEl.classList.remove("pintou"); frameEl.classList.add("pronto");
+    pronto = true; autoFeito = 0; mexeu = false;
+  }
+  function apaga(x, y, r) {
+    ctx.globalCompositeOperation = "destination-out";
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, "rgba(0,0,0,1)"); g.addColorStop(.6, "rgba(0,0,0,.9)"); g.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  }
+  // agulha automática: zigue-zague de cima a baixo, com a ponta rosa visível
+  function agulha(ate) {
+    if (!pronto || ate <= autoFeito) return;
+    const W = tela.width, H = tela.height, linhas = 9, r = H / 10;
+    const passos = 360, de = Math.floor(autoFeito * passos), para = Math.floor(ate * passos);
+    let x = 0, y = 0;
+    for (let i = de; i <= para; i++) {
+      const t = i / passos, lin = Math.min(linhas - 1, Math.floor(t * linhas)), fr = t * linhas - lin;
+      x = (lin % 2 ? 1 - fr : fr) * W; y = ((lin + 0.5) / linhas) * H;
+      apaga(x, y, r);
+    }
+    const k = tela.clientWidth / W;
+    ponta.style.transform = `translate(${x * k}px,${y * k}px)`;
+    autoFeito = ate;
+    if (ate >= 0.999) { ctx.clearRect(0, 0, W, H); ponta.classList.remove("on"); frameEl.classList.add("pintou"); }
+  }
+  function tatua(duracao) {
+    if (!pronto || autoFeito >= 0.999) return;
+    if (anim) anim.kill();
+    if (!hasGsap || reduce) return agulha(1);
+    ponta.classList.add("on"); frameEl.classList.add("pintou");
+    const o = { v: autoFeito };
+    anim = gsap.to(o, { v: 1, duration: duracao * (1 - autoFeito), ease: "none", onUpdate: () => agulha(o.v) });
+  }
+  // mostra o decalque um instante e começa a tatuar, a não ser que a pessoa já esteja pintando
+  let aviso = null;
+  function tatuaSozinha() {
+    clearTimeout(aviso);
+    aviso = setTimeout(() => { if (!mexeu) tatua(4.5); }, 1600);
+  }
+  function mostra(nome) {
+    const t = trabalhos[nome];
+    document.querySelectorAll(".tab").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.foto === nome)));
+    if (anim) { anim.kill(); anim = null; }
+    frameEl.classList.remove("pronto"); pronto = false;
+    foto.src = `img/${nome}.jpg`; foto.alt = t.alt;
+    traco.onload = () => { desenhaDecalque(); tatuaSozinha(); }; traco.src = `img/${nome}-decalque.png`;
+    const leg = document.getElementById("legenda");
+    leg.innerHTML = `<span class="note">${t.nota}</span><small>${t.info}</small>`;
+    if (hasGsap && !reduce) gsap.from(leg.children, { y: 12, opacity: 0, duration: 0.6, stagger: 0.08, ease: "power3.out" });
+  }
+  document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => mostra(b.dataset.foto)));
+  document.getElementById("ver-pronta").addEventListener("click", () => { mexeu = true; tatua(1.8); });
+  document.getElementById("refazer").addEventListener("click", () => { desenhaDecalque(); mexeu = true; });
+  // pintar com o dedo ou o mouse
+  let ultimo = null;
+  function pinta(cx, cy) {
+    if (!pronto) return;
+    if (anim) { anim.kill(); anim = null; ponta.classList.remove("on"); }
+    mexeu = true;
+    const b = tela.getBoundingClientRect(), k = tela.width / b.width;
+    const x = (cx - b.left) * k, y = (cy - b.top) * k, r = tela.width * 0.08;
+    if (ultimo) { const d = Math.hypot(x - ultimo[0], y - ultimo[1]), n = Math.ceil(d / (r / 3)); for (let i = 1; i <= n; i++) apaga(ultimo[0] + (x - ultimo[0]) * i / n, ultimo[1] + (y - ultimo[1]) * i / n, r); }
+    else apaga(x, y, r);
+    ultimo = [x, y]; frameEl.classList.add("pintou");
+  }
+  // mouse: pinta só de passar por cima
+  tela.addEventListener("mousemove", (e) => pinta(e.clientX, e.clientY));
+  tela.addEventListener("mouseleave", () => (ultimo = null));
+  // dedo: eventos de toque continuam chegando mesmo enquanto a página rola, então dá pra pintar arrastando em qualquer direção
+  tela.addEventListener("touchstart", (e) => { ultimo = null; pinta(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+  tela.addEventListener("touchmove", (e) => pinta(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
+  tela.addEventListener("touchend", () => (ultimo = null));
+  // a barra de endereço do celular muda a altura da tela ao rolar: só redesenha se a largura mudou de verdade
+  addEventListener("resize", () => {
+    if (!pronto || tela.clientWidth === larguraDesenhada) return;
+    const feito = autoFeito >= 0.999;
+    desenhaDecalque();
+    if (feito) { ctx.clearRect(0, 0, tela.width, tela.height); autoFeito = 1; }
+  });
+  traco.onload = desenhaDecalque; traco.src = "img/tucano-decalque.png";
+  // começa a tatuar quando a foto aparece bem na tela pela primeira vez
+  new IntersectionObserver(([e], obs) => { if (e.isIntersecting) { obs.disconnect(); tatuaSozinha(); } }, { threshold: 0.6 }).observe(frameEl);
+
+  // Palavras do manifesto e do depoimento (acendem conforme a rolagem)
+  document.querySelectorAll(".reveal-words").forEach((p) => {
+    const partes = [];
+    p.childNodes.forEach((node) => {
+      if (node.nodeType === 3) node.textContent.split(/(\s+)/).forEach((w) => partes.push(w.trim() ? `<span class="w">${w}</span>` : w));
+      else if (node.tagName === "EM") {
+        const svg = node.querySelector("svg"); const txt = node.textContent;
+        partes.push(`<em>${txt.split(/(\s+)/).map((w) => (w.trim() ? `<span class="w">${w}</span>` : w)).join("")}${svg ? svg.outerHTML : ""}</em>`);
+      } else partes.push(node.outerHTML);
+    });
+    p.innerHTML = partes.join("");
+  });
+
+  // Menu some ao rolar pra baixo (não fica por cima do texto) e volta ao rolar pra cima
+  const nav = document.querySelector(".nav");
+  let ultimoY = scrollY;
+  addEventListener("scroll", () => {
+    const y = scrollY;
+    if (Math.abs(y - ultimoY) < 8) return;
+    nav.classList.toggle("some", y > ultimoY && y > innerHeight * 0.5);
+    ultimoY = y;
+  }, { passive: true });
+
+  // CTA fixo no celular
+  const sticky = document.querySelector(".sticky-cta");
+  // some na conversa e nos trabalhos (cobriria as respostas e as abas) e no chamado final
+  let passouHero = false;
+  const tapando = new Set();
+  const atualizaSticky = () => sticky.classList.toggle("on", passouHero && tapando.size === 0);
+  new IntersectionObserver(([e]) => { passouHero = !e.isIntersecting; atualizaSticky(); }).observe(document.querySelector(".hero"));
+  ["#conversa", "#trabalhos", ".final"].forEach((sel) => new IntersectionObserver(([e]) => {
+    e.isIntersecting ? tapando.add(e.target) : tapando.delete(e.target); atualizaSticky();
+  }).observe(document.querySelector(sel)));
+
+  // Sem GSAP (CDN bloqueado) ou com movimento reduzido: a página fica estática e completa.
+  if (!hasGsap || reduce) {
+    document.querySelectorAll(".manifesto .w, .proof .w").forEach((w) => w.classList.add("on"));
+    return;
+  }
+
+  gsap.registerPlugin(ScrollTrigger);
+
+  // Rolagem suave
+  if (typeof window.Lenis !== "undefined") {
+    const lenis = new Lenis({ lerp: 0.09, smoothWheel: true });
+    lenis.on("scroll", ScrollTrigger.update);
+    gsap.ticker.add((t) => lenis.raf(t * 1000));
+    gsap.ticker.lagSmoothing(0);
+    document.querySelectorAll('a[href^="#"]').forEach((a) => a.addEventListener("click", (e) => {
+      const alvo = document.querySelector(a.getAttribute("href"));
+      if (alvo) { e.preventDefault(); lenis.scrollTo(alvo, { offset: -10 }); }
+    }));
+    window.__lenis = lenis;
+  }
+
+  // Setas das anotações se desenham, como giz passando no papel
+  const ns = "http://www.w3.org/2000/svg";
+  document.querySelectorAll(".note svg").forEach((svg, i) => {
+    const defs = document.createElementNS(ns, "defs");
+    const caminhos = [...svg.querySelectorAll("path")];
+    caminhos.forEach((p, j) => {
+      const mask = document.createElementNS(ns, "mask"); mask.id = `seta-${i}-${j}`; mask.setAttribute("maskUnits", "userSpaceOnUse");
+      const m = p.cloneNode(); m.removeAttribute("class");
+      m.setAttribute("style", "stroke:#fff;stroke-width:7;fill:none;stroke-linecap:round");
+      m.setAttribute("pathLength", "1"); m.setAttribute("stroke-dasharray", "1"); m.setAttribute("stroke-dashoffset", "1");
+      mask.appendChild(m); defs.appendChild(mask); p.setAttribute("mask", `url(#${mask.id})`); p._risco = m;
+    });
+    svg.prepend(defs);
+    const nota = svg.closest(".note");
+    const tl = gsap.timeline({ paused: true })
+      .from(nota, { opacity: 0, duration: 0.5 })
+      .to(caminhos.map((p) => p._risco), { attr: { "stroke-dashoffset": 0 }, duration: 0.7, ease: "power2.inOut", stagger: 0.45 }, "-=0.2");
+    ScrollTrigger.create({ trigger: nota, start: "top 92%", onEnter: () => tl.play() });
+  });
+
+  // Rabisco e círculo do "mais escolhido" se desenham ao aparecer
+  [".rabisco path", ".tier .badge path"].forEach((sel) => {
+    const p = document.querySelector(sel);
+    p.setAttribute("pathLength", "1"); p.style.strokeDasharray = "1"; p.style.strokeDashoffset = "1";
+    gsap.to(p, { strokeDashoffset: 0, duration: 1, ease: "power2.inOut", scrollTrigger: { trigger: p.closest("p,.tier"), start: "top 70%" } });
+  });
+
+  // Entrada do topo: os recortes caem na mesa, as letras são coladas uma a uma, a Maya é "colada" por último
+  const vira = () => gsap.utils.random(-25, 25);
+  gsap.timeline({ delay: 0.1 })
+    .from(".pedaco", { scale: 0, rotate: vira, opacity: 0, duration: 0.9, ease: "back.out(1.6)", stagger: 0.06 })
+    .from(".hero .recorte .ch", { opacity: 0, scale: 1.8, rotate: vira, duration: 0.45, ease: "back.out(2.2)", stagger: 0.045 }, 0.2)
+    .from(".hero .script", { clipPath: "inset(0 100% 0 0)", duration: 0.9, ease: "power2.inOut" }, "-=0.1")
+    .from(".estrela", { scale: 0, rotate: -90, duration: 0.6, ease: "back.out(3)" }, "-=0.3")
+    .from("#maya", { scale: 0.6, rotate: -14, opacity: 0, duration: 0.8, ease: "back.out(1.8)" }, 0.5)
+    .from(".maya-hero .balao", { scale: 0, rotate: 20, duration: 0.6, ease: "back.out(2.5)" }, "-=0.25")
+    .from(".hero .mono, .hero-copy, .hero-cta", { opacity: 0, y: 18, duration: 0.7, stagger: 0.08 }, "-=0.6");
+
+  // A Maya respira e, no computador, inclina como um adesivo seguindo o mouse
+  gsap.to("#maya", { y: -8, rotate: 1.2, duration: 2.4, ease: "sine.inOut", yoyo: true, repeat: -1, delay: 1.4 });
+  if (finePointer) {
+    const hero = document.querySelector(".hero");
+    const giraX = gsap.quickTo("#maya", "rotationY", { duration: 0.8, ease: "power3" });
+    const giraY = gsap.quickTo("#maya", "rotationX", { duration: 0.8, ease: "power3" });
+    const pedacos = gsap.utils.toArray(".pedaco").map((p, i) => [gsap.quickTo(p, "x", { duration: 1.2, ease: "power3" }), gsap.quickTo(p, "y", { duration: 1.2, ease: "power3" }), (i % 3 + 1) * 8]);
+    hero.addEventListener("pointermove", (e) => {
+      const nx = e.clientX / innerWidth - 0.5, ny = e.clientY / innerHeight - 0.5;
+      giraX(nx * 18); giraY(-ny * 14);
+      pedacos.forEach(([qx, qy, f]) => { qx(-nx * f); qy(-ny * f); });
+    });
+  }
+
+  // Recortes se espalham ao rolar
+  gsap.utils.toArray(".pedaco").forEach((p, i) => gsap.to(p, { yPercent: (i % 2 ? -1 : 1) * 60, rotate: `+=${(i % 2 ? -1 : 1) * 12}`, ease: "none", scrollTrigger: { trigger: ".hero", start: "top top", end: "bottom top", scrub: true } }));
+
+  // Manifesto e depoimento: palavras acendem
+  [".manifesto", ".proof"].forEach((sel) => {
+    const words = document.querySelectorAll(`${sel} .w`);
+    ScrollTrigger.create({
+      trigger: sel, start: "top 70%", end: "bottom 60%", scrub: true,
+      onUpdate: (self) => { const n = Math.round(self.progress * words.length * 1.15); words.forEach((w, i) => w.classList.toggle("on", i < n)); },
+    });
+  });
+
+  // Títulos das seções: letras coladas uma a uma
+  gsap.utils.toArray("section .js-letras").forEach((h) => {
+    gsap.from(h.querySelectorAll(".ch"), { opacity: 0, scale: 1.7, rotate: vira, duration: 0.42, ease: "back.out(2.2)", stagger: 0.022,
+      scrollTrigger: { trigger: h, start: "top 88%" } });
+  });
+
+  // Bilhetes, planos, polaroid e celular "caem" na mesa
+  [[".bilhete", ".bilhetes"], [".tier", ".tiers"]].forEach(([itens, grupo]) =>
+    gsap.from(itens, { y: 70, rotate: vira, opacity: 0, duration: 0.9, ease: "back.out(1.4)", stagger: 0.12,
+      scrollTrigger: { trigger: grupo, start: "top 85%" } }));
+  [".polaroid", ".phone-wrap", ".historia .adesivo", ".final-maya .adesivo"].forEach((sel) =>
+    gsap.from(sel, { y: 60, rotate: vira, opacity: 0, duration: 1, ease: "back.out(1.5)", scrollTrigger: { trigger: sel, start: "top 88%" } }));
+  gsap.from(".final-maya .balao", { scale: 0, duration: 0.6, ease: "back.out(2.5)", scrollTrigger: { trigger: ".final-maya", start: "top 80%" } });
+
+  // Marca gigante sobe no rodapé
+  gsap.from(".wordmark", { yPercent: 60, ease: "none", scrollTrigger: { trigger: ".final", start: "top bottom", end: "bottom bottom", scrub: true } });
+})();
+</script>
+</body>
+</html>
